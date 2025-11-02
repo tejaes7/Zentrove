@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Purchase Order - PO Tracking System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>PO Tracking</h2>
+                <p id="org-info"></p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false" fill="none" stroke="currentColor">
+                            <path d="M5 20V11.5M12 20V4M19 20v-7.5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="/create-po" class="nav-item active">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="7.5" stroke-width="1.6"/>
+                            <path d="M12 9v6m-3-3h6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Create PO</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>Create Purchase Order</h1>
+                    <p class="header-subtitle">Capture requirements and budgets with impeccable clarity.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" id="user-avatar"></div>
+                        <div class="user-details">
+                            <div class="user-name" id="user-name"></div>
+                            <div class="user-role" id="user-role"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content-wrapper">
+                <div id="alert-container"></div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-heading">
+                            <h2>New Purchase Order</h2>
+                            <p class="table-caption">Define scope, value, and supplier expectations in minutes.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="create-po-form">
+                            <div class="form-group">
+                                <label for="vendorName">Vendor Name *</label>
+                                <input type="text" id="vendorName" required placeholder="Enter vendor name">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <textarea id="description" rows="3" placeholder="Optional description"></textarea>
+                            </div>
+
+                            <h3 style="margin: 30px 0 20px;">Items</h3>
+                            
+                            <div id="items-container">
+                                <div class="item-row">
+                                    <div class="form-group">
+                                        <label>Item Name *</label>
+                                        <input type="text" class="item-name" required placeholder="Item name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Quantity *</label>
+                                        <input type="number" class="item-quantity" required min="1" placeholder="Qty">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Unit Price *</label>
+                                        <input type="number" class="item-price" required min="0" step="0.01" placeholder="Price">
+                                    </div>
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeItem(this)" style="margin-top: 28px;">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-secondary add-item-btn" onclick="addItem()">
+                                + Add Another Item
+                            </button>
+
+                            <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--color-border);">
+                                <h3 style="margin-bottom: 15px;">Total: <span id="total-amount">₹0.00</span></h3>
+                            </div>
+
+                            <div style="margin-top: 30px; display: flex; gap: 15px;">
+                                <button type="submit" class="btn btn-primary">Create Purchase Order</button>
+                                <button type="button" class="btn btn-secondary" onclick="window.location.href='/dashboard'">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentUser = null;
+        const currencyFormatter = new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        function formatCurrency(value) {
+            const amount = Number(value) || 0;
+            return currencyFormatter.format(amount);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            updateTotal();
+            
+            // Add event listeners for auto-calculation
+            document.addEventListener('input', (e) => {
+                if (e.target.classList.contains('item-quantity') || e.target.classList.contains('item-price')) {
+                    updateTotal();
+                }
+            });
+        });
+
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                
+                if (!data.authenticated) {
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Only Logistics can create POs
+                if (data.user.role !== 'Logistics') {
+                    window.location.href = '/dashboard';
+                    return;
+                }
+                
+                currentUser = data.user;
+                updateUserUI();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // Update user interface
+        function updateUserUI() {
+            document.getElementById('user-name').textContent = currentUser.fullName;
+            document.getElementById('user-role').textContent = currentUser.role;
+            document.getElementById('user-avatar').textContent = currentUser.fullName.charAt(0).toUpperCase();
+            document.getElementById('org-info').textContent = currentUser.orgId;
+        }
+
+        // Add item row
+        function addItem() {
+            const container = document.getElementById('items-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'item-row';
+            newRow.innerHTML = `
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" class="item-name" required placeholder="Item name">
+                </div>
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" class="item-quantity" required min="1" placeholder="Qty">
+                </div>
+                <div class="form-group">
+                    <label>Unit Price *</label>
+                    <input type="number" class="item-price" required min="0" step="0.01" placeholder="Price">
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeItem(this)" style="margin-top: 28px;">Remove</button>
+                </div>
+            `;
+            container.appendChild(newRow);
+            updateTotal();
+        }
+
+        // Remove item row
+        function removeItem(button) {
+            const container = document.getElementById('items-container');
+            if (container.children.length > 1) {
+                button.closest('.item-row').remove();
+                updateTotal();
+            } else {
+                showAlert('You must have at least one item', 'error');
+            }
+        }
+
+        // Update total amount
+        function updateTotal() {
+            let total = 0;
+            const rows = document.querySelectorAll('.item-row');
+            
+            rows.forEach(row => {
+                const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                total += quantity * price;
+            });
+            
+            document.getElementById('total-amount').textContent = formatCurrency(total);
+        }
+
+        // Handle form submission
+        document.getElementById('create-po-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const vendorName = document.getElementById('vendorName').value;
+            const description = document.getElementById('description').value;
+            
+            // Collect items
+            const items = [];
+            const rows = document.querySelectorAll('.item-row');
+            
+            for (const row of rows) {
+                const itemName = row.querySelector('.item-name').value;
+                const quantity = parseFloat(row.querySelector('.item-quantity').value);
+                const unitPrice = parseFloat(row.querySelector('.item-price').value);
+                
+                if (!itemName || !quantity || !unitPrice) {
+                    showAlert('Please fill in all item fields', 'error');
+                    return;
+                }
+                
+                items.push({
+                    itemName,
+                    quantity,
+                    unitPrice
+                });
+            }
+            
+            if (items.length === 0) {
+                showAlert('Please add at least one item', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/purchase-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        vendorName,
+                        description,
+                        items
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Purchase order ${data.poNumber} created successfully!`, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 2000);
+                } else {
+                    showAlert(data.message || 'Failed to create purchase order', 'error');
+                }
+            } catch (error) {
+                console.error('Create PO failed:', error);
+                showAlert('Failed to create purchase order', 'error');
+            }
+        });
+
+        // Alert utility
+        function showAlert(message, type = 'error') {
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+    </script>
+</body>
+</html>

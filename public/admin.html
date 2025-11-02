@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Zentrove</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Zentrove</h2>
+                <p id="org-info"></p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false" fill="none" stroke="currentColor">
+                            <path d="M5 20V11.5M12 20V4M19 20v-7.5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="/admin" class="nav-item active">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false" fill="none" stroke="currentColor">
+                            <path d="M8 11a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M5.5 20a6.5 6.5 0 0 1 13 0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">User Management</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>User Management</h1>
+                    <p class="header-subtitle">Maintain access clarity and compliance across your organization.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" id="user-avatar"></div>
+                        <div class="user-details">
+                            <div class="user-name" id="user-name"></div>
+                            <div class="user-role" id="user-role"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content-wrapper">
+                <div id="alert-container"></div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-heading">
+                            <h2>Organization Users</h2>
+                            <p class="table-caption">Manage roles, permissions, and activation status with precision.</p>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <!-- Users will be loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Change Role Modal -->
+    <div class="modal" id="change-role-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change User Role</h2>
+                <button class="modal-close" onclick="closeModal('change-role-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px;">Change role for: <strong id="role-user-name"></strong></p>
+                <div class="form-group">
+                    <label>New Role</label>
+                    <select id="new-role">
+                        <option value="Logistics">Logistics</option>
+                        <option value="Head of Department">Head of Department</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Stores">Stores</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('change-role-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitRoleChange()">Update Role</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div class="modal" id="reset-password-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reset Password</h2>
+                <button class="modal-close" onclick="closeModal('reset-password-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px;">Reset password for: <strong id="password-user-name"></strong></p>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="new-password" minlength="6" placeholder="Enter new password (min 6 characters)">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('reset-password-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitPasswordReset()">Reset Password</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let allUsers = [];
+        let selectedUserId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadUsers();
+        });
+
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                
+                if (!data.authenticated) {
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Only Admin can access this page
+                if (data.user.role !== 'Admin') {
+                    window.location.href = '/dashboard';
+                    return;
+                }
+                
+                currentUser = data.user;
+                updateUserUI();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // Update user interface
+        function updateUserUI() {
+            document.getElementById('user-name').textContent = currentUser.fullName;
+            document.getElementById('user-role').textContent = currentUser.role;
+            document.getElementById('user-avatar').textContent = currentUser.fullName.charAt(0).toUpperCase();
+            document.getElementById('org-info').textContent = currentUser.orgId;
+        }
+
+        // Load users
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allUsers = data.users;
+                    renderUsers(allUsers);
+                }
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                showAlert('Failed to load users', 'error');
+            }
+        }
+
+        // Render users table
+        function renderUsers(users) {
+            const tbody = document.getElementById('users-table-body');
+            
+            tbody.innerHTML = users.map(user => {
+                const joinedDate = new Date(user.created_at).toLocaleDateString();
+                const statusBadge = user.is_active 
+                    ? '<span class="badge badge-approved">Active</span>'
+                    : '<span class="badge badge-rejected">Inactive</span>';
+                
+                const isCurrentUser = user.id === currentUser.id;
+                
+                return `
+                    <tr>
+                        <td><strong>${user.full_name}</strong></td>
+                        <td>${user.email}</td>
+                        <td><span class="badge badge-pending">${user.role}</span></td>
+                        <td>${statusBadge}</td>
+                        <td>${joinedDate}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-icon btn-primary" onclick="openChangeRoleModal(${user.id}, '${user.full_name}', '${user.role}')" ${isCurrentUser ? 'disabled title="You cannot change your own role."' : ''}>
+                                    Change Role
+                                </button>
+                                <button class="btn-icon btn-warning" onclick="openResetPasswordModal(${user.id}, '${user.full_name}')">
+                                    Reset Password
+                                </button>
+                                ${!isCurrentUser ? `
+                                    <button class="btn-icon ${user.is_active ? 'btn-danger' : 'btn-success'}" 
+                                            onclick="toggleUserStatus(${user.id}, ${!user.is_active})">
+                                        ${user.is_active ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Open change role modal
+        function openChangeRoleModal(userId, userName, currentRole) {
+            selectedUserId = userId;
+            document.getElementById('role-user-name').textContent = userName;
+            document.getElementById('new-role').value = currentRole;
+            openModal('change-role-modal');
+        }
+
+        // Submit role change
+        async function submitRoleChange() {
+            const newRole = document.getElementById('new-role').value;
+            
+            try {
+                const response = await fetch(`/api/users/${selectedUserId}/role`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role: newRole })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    closeModal('change-role-modal');
+                    await loadUsers();
+                } else {
+                    showAlert(data.message || 'Failed to update role', 'error');
+                }
+            } catch (error) {
+                console.error('Role change failed:', error);
+                showAlert('Failed to update role', 'error');
+            }
+        }
+
+        // Open reset password modal
+        function openResetPasswordModal(userId, userName) {
+            selectedUserId = userId;
+            document.getElementById('password-user-name').textContent = userName;
+            document.getElementById('new-password').value = '';
+            openModal('reset-password-modal');
+        }
+
+        // Submit password reset
+        async function submitPasswordReset() {
+            const newPassword = document.getElementById('new-password').value;
+            
+            if (!newPassword || newPassword.length < 6) {
+                showAlert('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/users/${selectedUserId}/password`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ newPassword })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    closeModal('reset-password-modal');
+                } else {
+                    showAlert(data.message || 'Failed to reset password', 'error');
+                }
+            } catch (error) {
+                console.error('Password reset failed:', error);
+                showAlert('Failed to reset password', 'error');
+            }
+        }
+
+        // Toggle user status
+        async function toggleUserStatus(userId, newStatus) {
+            const action = newStatus ? 'activate' : 'deactivate';
+            if (!confirm(`Are you sure you want to ${action} this user?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/users/${userId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ isActive: newStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    await loadUsers();
+                } else {
+                    showAlert(data.message || 'Failed to update user status', 'error');
+                }
+            } catch (error) {
+                console.error('Status update failed:', error);
+                showAlert('Failed to update user status', 'error');
+            }
+        }
+
+        // Modal utilities
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Alert utility
+        function showAlert(message, type = 'error') {
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+    </script>
+</body>
+</html>

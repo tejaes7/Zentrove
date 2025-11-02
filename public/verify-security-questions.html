@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Identity - PO Tracking System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <section class="auth-brand-panel">
+            <div class="auth-brand-content">
+                <span class="auth-badge">Procurement Suite</span>
+                <h1>Security Verification</h1>
+                <p class="auth-tagline">Please answer your security questions to verify your identity.</p>
+            </div>
+            <ul class="auth-highlights">
+                <li>Answer the questions you set during signup</li>
+                <li>Answers are case-insensitive</li>
+                <li>All three questions must be answered correctly</li>
+            </ul>
+        </section>
+        <section class="auth-card">
+            <div class="auth-header">
+                <h1>Verify Your Identity</h1>
+                <p class="auth-subtitle">Please answer the security questions you provided during registration.</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="verify-questions-form">
+                <div class="form-group">
+                    <label for="answer1" id="question1-label">Your best friend's name in high school</label>
+                    <input type="text" id="answer1" name="answer1" required placeholder="Enter your answer">
+                </div>
+
+                <div class="form-group">
+                    <label for="answer2" id="question2-label">Your favorite book</label>
+                    <input type="text" id="answer2" name="answer2" required placeholder="Enter your answer">
+                </div>
+
+                <div class="form-group">
+                    <label for="answer3" id="question3-label">Your favorite place</label>
+                    <input type="text" id="answer3" name="answer3" required placeholder="Enter your answer">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Verify Identity</button>
+            </form>
+
+            <div class="auth-footer">
+                <a href="/forgot-password">Back to email entry</a>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const verifyQuestionsForm = document.getElementById('verify-questions-form');
+        const alertContainer = document.getElementById('alert-container');
+
+        // Get email from sessionStorage
+        const email = sessionStorage.getItem('forgotPasswordEmail');
+        
+        if (!email) {
+            window.location.href = '/forgot-password';
+        }
+
+        function showAlert(message, type = 'error') {
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Fetch security questions on page load
+        async function loadSecurityQuestions() {
+            try {
+                const response = await fetch('/api/auth/forgot-password/get-questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('question1-label').textContent = data.questions[0];
+                    document.getElementById('question2-label').textContent = data.questions[1];
+                    document.getElementById('question3-label').textContent = data.questions[2];
+                } else {
+                    showAlert(data.message || 'Failed to load security questions.');
+                    setTimeout(() => {
+                        window.location.href = '/forgot-password';
+                    }, 2000);
+                }
+            } catch (error) {
+                showAlert('Network error. Please check your connection.');
+            }
+        }
+
+        loadSecurityQuestions();
+
+        verifyQuestionsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const answer1 = document.getElementById('answer1').value;
+            const answer2 = document.getElementById('answer2').value;
+            const answer3 = document.getElementById('answer3').value;
+
+            try {
+                const response = await fetch('/api/auth/forgot-password/verify-answers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        email,
+                        answer1,
+                        answer2,
+                        answer3
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store verification token in sessionStorage
+                    sessionStorage.setItem('passwordResetToken', data.token);
+                    sessionStorage.setItem('forgotPasswordEmail', email);
+                    window.location.href = '/reset-password';
+                } else {
+                    showAlert(data.message || 'One or more answers are incorrect. Please try again.');
+                }
+            } catch (error) {
+                showAlert('Network error. Please check your connection.');
+            }
+        });
+    </script>
+</body>
+</html>
+

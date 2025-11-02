@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PO Tracking System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>PO Tracking</h2>
+                <p id="org-info"></p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item active">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false" fill="none" stroke="currentColor">
+                            <path d="M5 20V11.5M12 20V4M19 20v-7.5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="/create-po" class="nav-item" id="create-po-link" style="display: none;">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="7.5" stroke-width="1.6"/>
+                            <path d="M12 9v6m-3-3h6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">Create PO</span>
+                </a>
+                <a href="/admin" class="nav-item" id="admin-link" style="display: none;">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation" focusable="false" fill="none" stroke="currentColor">
+                            <path d="M8 11a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M5.5 20a6.5 6.5 0 0 1 13 0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span class="nav-label">User Management</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>Dashboard</h1>
+                    <p class="header-subtitle">Spend intelligence and approvals at a glance.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" id="user-avatar"></div>
+                        <div class="user-details">
+                            <div class="user-name" id="user-name"></div>
+                            <div class="user-role" id="user-role"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content-wrapper">
+                <div id="alert-container"></div>
+
+                <section class="welcome-banner">
+                    <div class="welcome-text">
+                        <h2 id="welcome-heading">Welcome back</h2>
+                        <p>Use the live insights below to keep spend disciplined and predictable.</p>
+                    </div>
+                    <div class="welcome-meta">
+                        <span class="meta-chip" id="welcome-role"></span>
+                        <span class="meta-chip" id="welcome-date"></span>
+                    </div>
+                </section>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="stats-grid">
+                    <!-- Stats will be loaded dynamically -->
+                </div>
+
+                <!-- Procurement Requests Table -->
+                <div class="table-container" id="procurement-requests-container">
+                    <div class="table-header">
+                        <div class="table-heading">
+                            <h2>Procurement Requests</h2>
+                            <p class="table-caption">Track progress from justification through vendor selection.</p>
+                        </div>
+                        <button class="btn btn-sm btn-primary" id="request-procurement-btn" style="display: none;" onclick="openProcurementRequestModal()">
+                            Request Procurement
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr id="procurement-requests-header-row"></tr>
+                            </thead>
+                            <tbody id="procurement-requests-body">
+                                <!-- Procurement rows will be loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Purchase Orders Table -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-heading">
+                            <h2>Purchase Orders</h2>
+                            <p class="table-caption">Stay ahead of commitments and vendor performance.</p>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="window.location.href='/create-po'" id="create-po-btn" style="display: none;">
+                            Create New PO
+                        </button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>PO Number</th>
+                                    <th>Vendor</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Status</th>
+                                    <th id="payment-status-header" style="display: none;">Payment</th>
+                                    <th id="delivery-status-header" style="display: none;">Delivery</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="po-table-body">
+                                <!-- Table rows will be loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Procurement Request Modal -->
+    <div class="modal" id="procurement-request-modal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h2>Request a Procurement</h2>
+                <button class="modal-close" onclick="closeModal('procurement-request-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Request Title *</label>
+                    <input type="text" id="pr-title" placeholder="e.g., Laptops for the analytics team">
+                </div>
+                <div class="form-group">
+                    <label>Business Justification</label>
+                    <textarea id="pr-reason" rows="3" placeholder="Describe why these items are required"></textarea>
+                </div>
+                <h3 style="margin: 25px 0 15px;">Requested Items</h3>
+                <div id="pr-items-container"></div>
+                <button type="button" class="btn btn-sm btn-secondary add-item-btn" onclick="addProcurementItem()">
+                    + Add Item
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('procurement-request-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitProcurementRequest()">Submit Request</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Procurement Request Details Modal -->
+    <div class="modal" id="procurement-request-details-modal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h2>Procurement Request</h2>
+                <button class="modal-close" onclick="closeModal('procurement-request-details-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="procurement-request-details-content"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('procurement-request-details-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Review Procurement Modal -->
+    <div class="modal" id="admin-review-request-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Review Procurement Request</h2>
+                <button class="modal-close" onclick="closeModal('admin-review-request-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Decision</label>
+                    <select id="admin-review-decision">
+                        <option value="Approved">Approve</option>
+                        <option value="Rejected">Reject</option>
+                        <option value="Hold">Put on Hold</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea id="admin-review-notes" rows="3" placeholder="Share context for your decision"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('admin-review-request-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitAdminReview()">Submit Decision</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor Options Modal -->
+    <div class="modal" id="vendor-options-modal">
+        <div class="modal-content" style="max-width: 960px;">
+            <div class="modal-header">
+                <h2>Submit Vendor Options</h2>
+                <button class="modal-close" onclick="closeModal('vendor-options-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="vendor-options-content"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('vendor-options-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitVendorOptions()">Submit Vendors</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Select Vendor Modal -->
+    <div class="modal" id="select-vendor-modal">
+        <div class="modal-content" style="max-width: 840px;">
+            <div class="modal-header">
+                <h2>Select Vendor &amp; Create PO</h2>
+                <button class="modal-close" onclick="closeModal('select-vendor-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="select-vendor-content"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('select-vendor-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitVendorSelection()">Create Purchase Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PO Details Modal -->
+    <div class="modal" id="po-details-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Purchase Order Details</h2>
+                <button class="modal-close" onclick="closeModal('po-details-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="po-details-content">
+                <!-- Details will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('po-details-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review PO Modal (Head of Department) -->
+    <div class="modal" id="review-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Review Purchase Order</h2>
+                <button class="modal-close" onclick="closeModal('review-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Decision</label>
+                    <select id="review-status">
+                        <option value="Approved">Approve</option>
+                        <option value="Rejected">Reject</option>
+                        <option value="Hold">Hold</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea id="review-notes" rows="3" placeholder="Add any notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('review-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitReview()">Submit Review</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Update Modal (Finance) -->
+    <div class="modal" id="payment-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Payment Status</h2>
+                <button class="modal-close" onclick="closeModal('payment-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Payment Status</label>
+                    <select id="payment-status">
+                        <option value="Not Paid">Not Paid</option>
+                        <option value="Partially Paid">Partially Paid</option>
+                        <option value="Paid">Paid</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea id="payment-notes" rows="3" placeholder="Add any notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('payment-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitPaymentUpdate()">Update Status</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Update Modal (Stores) -->
+    <div class="modal" id="delivery-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Delivery Status</h2>
+                <button class="modal-close" onclick="closeModal('delivery-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Delivery Status</label>
+                    <select id="delivery-status">
+                        <option value="Not Received">Not Received</option>
+                        <option value="Partially Received">Partially Received</option>
+                        <option value="Received Delivery">Received Delivery</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea id="delivery-notes" rows="3" placeholder="Add any notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('delivery-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitDeliveryUpdate()">Update Status</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

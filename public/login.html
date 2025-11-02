@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    
+    <title>Login - Zentrove</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <section class="auth-brand-panel">
+            <div class="auth-brand-content">
+                <span class="auth-badge">The future of procurement is here</span>
+                <h1>Zentrove</h1>
+                <p class="auth-tagline">Bring every approval, payment, and delivery into one intuitive workspace with Zentrove.</p>
+            </div>
+            <ul class="auth-highlights">
+                <li>Real-time visibility across every PO lifecycle</li>
+                <li>Granular approvals tuned to each department</li>
+                <li>Audit-ready history with zero spreadsheets</li>
+            </ul>
+        </section>
+        <section class="auth-card">
+            <div class="auth-header">
+                <h1>Welcome Back</h1>
+                <p class="auth-subtitle">Sign in to continue orchestrating a smarter supply chain.</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="name@company.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your password">
+                </div>
+
+                <div style="text-align: right; margin-bottom: 18px;">
+                    <a href="/forgot-password" style="font-size: 0.9rem; font-weight: 500;">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Sign In</button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="/signup">Create one</a>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const alertContainer = document.getElementById('alert-container');
+
+        function showAlert(message, type = 'error') {
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    showAlert(data.message || 'Login failed. Please try again.');
+                }
+            } catch (error) {
+                showAlert('Network error. Please check your connection.');
+            }
+        });
+    </script>
+</body>
+</html>

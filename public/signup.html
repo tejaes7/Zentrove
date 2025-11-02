@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    
+    <title>Sign Up - Zentrove</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* This ensures the signup card doesn't grow too tall on smaller screens */
+        .auth-card-scrollable {
+            max-height: 95vh; /* Limit height to 95% of the viewport height */
+            overflow-y: auto; /* Add a vertical scrollbar if content overflows */
+            padding-right: 10px; /* Add some space to prevent scrollbar from overlapping content */
+        }
+    </style>
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <section class="auth-brand-panel">
+            <div class="auth-brand-content">
+                <span class="auth-badge">Welcome to Zentrove</span>
+                <h1>Launch a resilient purchasing hub</h1>
+                <p class="auth-tagline">Unify requisitions, approvals, and supplier delivery into one beautifully organized platform with Zentrove.</p>
+            </div>
+            <ul class="auth-highlights">
+                <li>Tenant-level data isolation for every organization</li>
+                <li>Role-specific journeys that mirror your governance</li>
+                <li>Insightful dashboards ready from day one</li>
+            </ul>
+        </section>
+        <section class="auth-card auth-card-scrollable">
+            <div class="auth-header">
+                <h1>Create Account</h1>
+                <p class="auth-subtitle">Set up a high-confidence workspace for your procurement team.</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <form id="signup-form">
+                <div class="form-group">
+                    <label>Organization</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="signup-new" name="signupType" value="new" checked>
+                            <label for="signup-new">Create New</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="signup-join" name="signupType" value="join">
+                            <label for="signup-join">Join Existing</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" id="org-name-group">
+                    <label for="orgName">Organization Name</label>
+                    <input type="text" id="orgName" name="orgName" placeholder="e.g. Meridian Manufacturing">
+                </div>
+
+                <div class="form-group hidden" id="org-id-group">
+                    <label for="orgId">Organization ID</label>
+                    <input type="text" id="orgId" name="orgId" placeholder="Enter your issued organization ID">
+                </div>
+
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" required placeholder="Your full name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="name@company.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Create a password (min 6 characters)" minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select your role</option>
+                        <option value="Logistics">Logistics</option>
+                        <option value="Head of Department">Head of Department</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Stores">Stores</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border);">
+                    <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: var(--color-navy); margin-bottom: 18px;">Security Questions</h3>
+                    <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: 20px;">Please answer these security questions. They will be used to verify your identity if you forget your password.</p>
+                    
+                    <div class="form-group">
+                        <label for="securityAnswer1">Your best friend's name in high school</label>
+                        <input type="text" id="securityAnswer1" name="securityAnswer1" required placeholder="Enter your answer">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="securityAnswer2">Your favorite book</label>
+                        <input type="text" id="securityAnswer2" name="securityAnswer2" required placeholder="Enter your answer">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="securityAnswer3">Your favorite place</label>
+                        <input type="text" id="securityAnswer3" name="securityAnswer3" required placeholder="Enter your answer">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </form>
+
+            <div class="auth-footer">
+                Already have an account? <a href="/">Sign in</a>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const signupForm = document.getElementById('signup-form');
+        const alertContainer = document.getElementById('alert-container');
+        const signupTypeRadios = document.querySelectorAll('input[name="signupType"]');
+        const orgNameGroup = document.getElementById('org-name-group');
+        const orgIdGroup = document.getElementById('org-id-group');
+        const orgNameInput = document.getElementById('orgName');
+        const orgIdInput = document.getElementById('orgId');
+        const roleSelect = document.getElementById('role');
+        const allRoleOptions = Array.from(roleSelect.options).map(option => ({
+            value: option.value,
+            text: option.textContent,
+            disabled: option.disabled
+        }));
+
+        function configureRoleOptions(signupType) {
+            roleSelect.innerHTML = '';
+
+            if (signupType === 'new') {
+                const adminOption = allRoleOptions.find(option => option.value === 'Admin');
+                if (adminOption) {
+                    const option = document.createElement('option');
+                    option.value = adminOption.value;
+                    option.textContent = adminOption.text;
+                    option.selected = true;
+                    roleSelect.appendChild(option);
+                }
+            } else {
+                allRoleOptions
+                    .filter(optionData => optionData.value !== 'Admin')
+                    .forEach(optionData => {
+                        const option = document.createElement('option');
+                        option.value = optionData.value;
+                        option.textContent = optionData.text;
+                        if (optionData.disabled) {
+                            option.disabled = true;
+                        }
+                        roleSelect.appendChild(option);
+                    });
+
+                roleSelect.value = '';
+            }
+        }
+
+        function showAlert(message, type = 'error') {
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Toggle between new org and join org
+        signupTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'new') {
+                    orgNameGroup.classList.remove('hidden');
+                    orgIdGroup.classList.add('hidden');
+                    orgNameInput.required = true;
+                    orgIdInput.required = false;
+                } else {
+                    orgNameGroup.classList.add('hidden');
+                    orgIdGroup.classList.remove('hidden');
+                    orgNameInput.required = false;
+                    orgIdInput.required = true;
+                }
+
+                configureRoleOptions(e.target.value);
+            });
+        });
+
+        configureRoleOptions(document.querySelector('input[name="signupType"]:checked').value);
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const signupType = document.querySelector('input[name="signupType"]:checked').value;
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            const securityAnswer1 = document.getElementById('securityAnswer1').value;
+            const securityAnswer2 = document.getElementById('securityAnswer2').value;
+            const securityAnswer3 = document.getElementById('securityAnswer3').value;
+
+            const payload = {
+                fullName,
+                email,
+                password,
+                role,
+                signupType,
+                securityAnswer1,
+                securityAnswer2,
+                securityAnswer3
+            };
+
+            if (signupType === 'new') {
+                payload.orgName = document.getElementById('orgName').value;
+            } else {
+                payload.orgId = document.getElementById('orgId').value;
+            }
+
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(`Account created successfully! ${signupType === 'new' ? 'Your Organization ID: ' + data.orgId : ''} Redirecting to login...`, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+                } else {
+                    showAlert(data.message || 'Signup failed. Please try again.');
+                }
+            } catch (error) {
+                showAlert('Network error. Please check your connection.');
+            }
+        });
+    </script>
+</body>
+</html>
